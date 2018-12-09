@@ -15,6 +15,7 @@ On Linux-based system, you can execute the `config.sh`  script.
 
 After compiled the program, it is placed in the  `bin/` folder named `jwpf.o`.
 Run the `install.sh` script  to place it under the `/usr/local/bin/` path. 
+- `sh install.sh`
 
 ## Syntax
 ### Explaination
