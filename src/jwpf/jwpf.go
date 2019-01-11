@@ -77,7 +77,7 @@ func worker(target string, wordlist []string, flag *bool, n_worker int) {
 }
 
 func main() {
-	if len(os.Args) < 3 {
+	if len(os.Args) < 4 {
 		fmt.Printf(" Missing argument.\n Usage:\t%s <url> <dictionary> <threads>\n", os.Args[0])
 		os.Exit(0)
 	}
@@ -85,6 +85,10 @@ func main() {
 	n_threads, atoiErr := strconv.Atoi(os.Args[3])
 	if atoiErr != nil {
 		fmt.Printf(" Error. Threads argument must be an integer.\n")
+		os.Exit(0)
+	}
+	if n_threads < 1 {
+		fmt.Printf(" No joke here. Threads argument must be greater than zero")
 		os.Exit(0)
 	}
 	target := os.Args[1]
