@@ -88,7 +88,7 @@ func main() {
 		os.Exit(0)
 	}
 	if n_threads < 1 {
-		fmt.Printf(" No joke here. Threads argument must be greater than zero")
+		fmt.Printf(" No joke here. Threads argument must be greater than zero\n")
 		os.Exit(0)
 	}
 	target := os.Args[1]
