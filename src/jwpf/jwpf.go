@@ -12,9 +12,9 @@ import (
 	"../fstring"
 )
 
-func packet(url string, client *http.Client, n_worker int) bool {
+func packet(url string, client *http.Client, req *http.Request, n_worker int) bool {
 
-	reqRes, reqErr := client.Get(url)
+	reqRes, reqErr := client.Do(req)
 	if reqErr != nil {
 		fmt.Printf(" [%d] DEAD WORKER %s\n", n_worker, reqErr.Error())
 		return false
@@ -65,11 +65,15 @@ func appendslash(text string) string {
 }
 
 func worker(target string, wordlist []string, flag *bool, n_worker int) {
-	client := &http.Client{
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
-	target = appendslash(target)
 	for _, word := range wordlist {
-		if packet(target+word, client, n_worker) == false {
+		client := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+				TLSHandshakeTimeout: 5 * time.Second},
+			Timeout: time.Second * 10}
+		target = appendslash(target)
+		req, _ := http.NewRequest("GET", target+word, nil)
+		if packet(target+word, client, req, n_worker) == false {
 			return
 		}
 	}
