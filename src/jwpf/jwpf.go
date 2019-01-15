@@ -12,12 +12,11 @@ import (
 	"../fstring"
 )
 
-func packet(url string, client *http.Client, req *http.Request, n_worker int) bool {
+func packet(url string, client *http.Client, req *http.Request, n_worker int) error {
 
 	reqRes, reqErr := client.Do(req)
 	if reqErr != nil {
-		fmt.Printf(" [%d] DEAD WORKER %s\n", n_worker, reqErr.Error())
-		return false
+		return reqErr
 	}
 	defer reqRes.Body.Close()
 
@@ -34,7 +33,7 @@ func packet(url string, client *http.Client, req *http.Request, n_worker int) bo
 	} else {
 		fmt.Printf("%s", logString)
 	}
-	return true
+	return nil
 }
 
 func sleep(sec int) {
@@ -73,8 +72,15 @@ func worker(target string, wordlist []string, flag *bool, n_worker int) {
 			Timeout: time.Second * 10}
 		target = appendslash(target)
 		req, _ := http.NewRequest("GET", target+word, nil)
-		if packet(target+word, client, req, n_worker) == false {
-			return
+		var reqError error
+		for i := 0; i < 5; i++ {
+			reqError = packet(target+word, client, req, n_worker)
+			if reqError == nil {
+				break
+			}
+		}
+		if reqError != nil {
+			fmt.Printf(" [%d] WORKER:  %s\n", n_worker, reqError.Error())
 		}
 	}
 	*flag = false
