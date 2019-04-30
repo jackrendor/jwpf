@@ -86,12 +86,12 @@ func addCookie(req *http.Request, cookies []http.Cookie) {
 
 func worker(target string, wordlist []string, cookies []string, flag *bool, n_worker int) {
 	cookie := createCookie(cookies)
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			TLSHandshakeTimeout: 5 * time.Second},
+		Timeout: time.Second * 10}
 	for _, word := range wordlist {
-		client := &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-				TLSHandshakeTimeout: 5 * time.Second},
-			Timeout: time.Second * 10}
 		target = appendslash(target)
 		req, _ := http.NewRequest("GET", target+word, nil)
 		if cookie != nil {
