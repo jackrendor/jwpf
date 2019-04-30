@@ -154,13 +154,16 @@ func main() {
 
 	for {
 		// Check every second if all thread has finished.
+		stillRunning := false
 		for _, flag := range flags {
 			if flag {
+				stillRunning = true
 				break
 			}
+		}
+		if !stillRunning {
 			fmt.Printf("\n\tProcess terminated.\n")
 			os.Exit(0)
-
 		}
 		sleep(1)
 
