@@ -147,7 +147,7 @@ func main() {
 	// Create the flags that will check the status of threads
 	flags := make([]bool, n_threads)
 	// Create n_threads go routines
-	for c, _ := range flags {
+	for c := range flags {
 		flags[c] = true
 		go worker(target, bi[c], cookies, &flags[c], c)
 	}
