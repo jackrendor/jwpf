@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"../fstring"
@@ -63,7 +64,28 @@ func appendslash(text string) string {
 	return text
 }
 
-func worker(target string, wordlist []string, flag *bool, n_worker int) {
+func createCookie(cookiesString []string) []http.Cookie {
+	if cookiesString == nil {
+		return nil
+	}
+	var cookies []http.Cookie
+	for _, data := range cookiesString {
+		d := strings.Split(data, "=")
+		name, value := d[0], d[1]
+		cookies = append(
+			cookies,
+			http.Cookie{Name: name, Value: value})
+	}
+	return cookies
+}
+func addCookie(req *http.Request, cookies []http.Cookie) {
+	for _, cookie := range cookies {
+		req.AddCookie(&cookie)
+	}
+}
+
+func worker(target string, wordlist []string, cookies []string, flag *bool, n_worker int) {
+	cookie := createCookie(cookies)
 	for _, word := range wordlist {
 		client := &http.Client{
 			Transport: &http.Transport{
@@ -72,12 +94,16 @@ func worker(target string, wordlist []string, flag *bool, n_worker int) {
 			Timeout: time.Second * 10}
 		target = appendslash(target)
 		req, _ := http.NewRequest("GET", target+word, nil)
+		if cookie != nil {
+			addCookie(req, cookie)
+		}
 		var reqError error
-		for i := 0; i < 5; i++ {
+		for i := 0; i < 30; i++ {
 			reqError = packet(target+word, client, req, n_worker)
 			if reqError == nil {
 				break
 			}
+			sleep(1)
 		}
 		if reqError != nil {
 			fmt.Printf(" [%d] WORKER:  %s\n", n_worker, reqError.Error())
@@ -88,7 +114,7 @@ func worker(target string, wordlist []string, flag *bool, n_worker int) {
 
 func main() {
 	if len(os.Args) < 4 {
-		fmt.Printf(" Missing argument.\n Usage:\t%s <url> <dictionary> <threads>\n", os.Args[0])
+		fmt.Printf(" Missing argument.\n Usage:\t%s <url> <dictionary> <threads> <cookie1> ... <cookie2>\n", os.Args[0])
 		os.Exit(0)
 	}
 
@@ -103,6 +129,12 @@ func main() {
 	}
 	target := os.Args[1]
 	filepath := os.Args[2]
+	var cookies []string
+	if len(os.Args) > 3 {
+		cookies = os.Args[4:]
+	} else {
+		cookies = nil
+	}
 
 	//Create big dictionary containing the wordlist
 	var dict []string
@@ -117,7 +149,7 @@ func main() {
 	// Create n_threads go routines
 	for c, _ := range flags {
 		flags[c] = true
-		go worker(target, bi[c], &flags[c], c)
+		go worker(target, bi[c], cookies, &flags[c], c)
 	}
 
 	for {
