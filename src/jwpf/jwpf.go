@@ -85,6 +85,7 @@ func addCookie(req *http.Request, cookies []http.Cookie) {
 }
 
 func worker(target string, wordlist []string, cookies []string, flag *bool, n_worker int) {
+	replacer := strings.NewReplacer(" ", "%20")
 	cookie := createCookie(cookies)
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -92,21 +93,28 @@ func worker(target string, wordlist []string, cookies []string, flag *bool, n_wo
 			TLSHandshakeTimeout: 5 * time.Second},
 		Timeout: time.Second * 10}
 	for _, word := range wordlist {
+		if strings.Contains(word, " ") {
+			word = replacer.Replace(word)
+		}
 		target = appendslash(target)
-		req, _ := http.NewRequest("GET", target+word, nil)
+		req, reqErr := http.NewRequest("GET", target+word, nil)
+		if reqErr != nil {
+			//NOTE: When url cannot be processed, it will be skipped.
+			continue
+		}
 		if cookie != nil {
 			addCookie(req, cookie)
 		}
-		var reqError error
+		var packErr error
 		for i := 0; i < 30; i++ {
-			reqError = packet(target+word, client, req, n_worker)
-			if reqError == nil {
+			packErr = packet(target+word, client, req, n_worker)
+			if packErr == nil {
 				break
 			}
 			sleep(1)
 		}
-		if reqError != nil {
-			fmt.Printf(" [%d] WORKER:  %s\n", n_worker, reqError.Error())
+		if packErr != nil {
+			fmt.Printf(" [%d] WORKER:  %s\n", n_worker, packErr.Error())
 		}
 	}
 	*flag = false
