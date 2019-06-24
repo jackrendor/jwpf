@@ -14,7 +14,7 @@ import (
 	"../fstring"
 )
 
-func packet(url string, client *http.Client, req *http.Request, n_worker int) error {
+func packet(url string, client *http.Client, req *http.Request, nWorker int) error {
 
 	reqRes, reqErr := client.Do(req)
 	if reqErr != nil {
@@ -85,7 +85,7 @@ func addCookie(req *http.Request, cookies []http.Cookie) {
 	}
 }
 
-func worker(target string, wordlist []string, cookies []string, wg *sync.WaitGroup, n_worker int) {
+func worker(target string, wordlist []string, cookies []string, wg *sync.WaitGroup, nWorker int) {
 	defer wg.Done()
 	replacer := strings.NewReplacer(" ", "%20")
 	cookie := createCookie(cookies)
@@ -109,14 +109,14 @@ func worker(target string, wordlist []string, cookies []string, wg *sync.WaitGro
 		}
 		var packErr error
 		for i := 0; i < 30; i++ {
-			packErr = packet(target+word, client, req, n_worker)
+			packErr = packet(target+word, client, req, nWorker)
 			if packErr == nil {
 				break
 			}
 			sleep(1)
 		}
 		if packErr != nil {
-			fmt.Printf(" [%d] WORKER:  %s\n", n_worker, packErr.Error())
+			fmt.Printf(" [%d] WORKER:  %s\n", nWorker, packErr.Error())
 		}
 	}
 }
@@ -127,12 +127,12 @@ func main() {
 		os.Exit(0)
 	}
 
-	n_threads, atoiErr := strconv.Atoi(os.Args[3])
+	nThreads, atoiErr := strconv.Atoi(os.Args[3])
 	if atoiErr != nil {
 		fmt.Printf(" Error. Threads argument must be an integer.\n")
 		os.Exit(0)
 	}
-	if n_threads < 1 {
+	if nThreads < 1 {
 		fmt.Printf(" No joke here. Threads argument must be greater than zero\n")
 		os.Exit(0)
 	}
@@ -150,15 +150,15 @@ func main() {
 	// Fill the dictionary
 	readFile(filepath, &dict)
 
-	// Split the loaded dictionary in n_threads lists
-	bi := fstring.ListDivider(dict, n_threads)
+	// Split the loaded dictionary in nThreads lists
+	bi := fstring.ListDivider(dict, nThreads)
 
 	// Create a WaitGroup to wait until all go routines end.
 	var wg sync.WaitGroup
-	wg.Add(n_threads)
+	wg.Add(nThreads)
 
-	// Create n_threads go routines
-	for i := 0; i < n_threads; i++ {
+	// Create nThreads go routines
+	for i := 0; i < nThreads; i++ {
 		go worker(target, bi[i], cookies, &wg, i)
 	}
 
