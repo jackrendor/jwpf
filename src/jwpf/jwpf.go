@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"../fstring"
@@ -84,7 +85,8 @@ func addCookie(req *http.Request, cookies []http.Cookie) {
 	}
 }
 
-func worker(target string, wordlist []string, cookies []string, flag *bool, n_worker int) {
+func worker(target string, wordlist []string, cookies []string, wg *sync.WaitGroup, n_worker int) {
+	defer wg.Done()
 	replacer := strings.NewReplacer(" ", "%20")
 	cookie := createCookie(cookies)
 	client := &http.Client{
@@ -117,7 +119,6 @@ func worker(target string, wordlist []string, cookies []string, flag *bool, n_wo
 			fmt.Printf(" [%d] WORKER:  %s\n", n_worker, packErr.Error())
 		}
 	}
-	*flag = false
 }
 
 func main() {
@@ -152,29 +153,15 @@ func main() {
 	// Split the loaded dictionary in n_threads lists
 	bi := fstring.ListDivider(dict, n_threads)
 
-	// Create the flags that will check the status of threads
-	flags := make([]bool, n_threads)
+	// Create a WaitGroup to wait until all go routines end.
+	var wg sync.WaitGroup
+	wg.Add(n_threads)
+
 	// Create n_threads go routines
-	for c := range flags {
-		flags[c] = true
-		go worker(target, bi[c], cookies, &flags[c], c)
+	for i := 0; i < n_threads; i++ {
+		go worker(target, bi[i], cookies, &wg, i)
 	}
 
-	for {
-		// Check every second if all thread has finished.
-		stillRunning := false
-		for _, flag := range flags {
-			if flag {
-				stillRunning = true
-				break
-			}
-		}
-		if !stillRunning {
-			fmt.Printf("\n\tProcess terminated.\n")
-			os.Exit(0)
-		}
-		sleep(1)
-
-	}
-
+	wg.Wait()
+	fmt.Println("\n Process terminated.")
 }
